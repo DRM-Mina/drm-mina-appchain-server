@@ -18,14 +18,31 @@ export class GameToken extends RuntimeModule<{}> {
     @state() public number_of_devices_allowed = State.from<UInt64>(UInt64);
 
     @runtimeMethod()
-    public buyGame(address: PublicKey): void {
+    public buyGame(): void {
         const gamePrice = this.gamePrice.get();
         const discount = this.discount.get();
         const total = gamePrice.value.sub(discount.value);
 
         // Add buy logic here
 
-        this.users.set(address, Bool(true));
+        const sender = this.transaction.sender.value;
+
+        assert(this.users.get(sender).value, "You have already bought the game");
+
+        this.users.set(sender, Bool(true));
+    }
+
+    @runtimeMethod()
+    public giftGame(receiver: PublicKey): void {
+        const gamePrice = this.gamePrice.get();
+        const discount = this.discount.get();
+        const total = gamePrice.value.sub(discount.value);
+
+        // Add gift logic here
+
+        assert(this.users.get(receiver).value, "The receiver has already bought the game");
+
+        this.users.set(receiver, Bool(true));
     }
 
     // TODO add sender check for publisher

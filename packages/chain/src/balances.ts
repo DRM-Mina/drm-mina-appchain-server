@@ -3,23 +3,19 @@ import { State, assert } from "@proto-kit/protocol";
 import { Balance, Balances as BaseBalances, TokenId } from "@proto-kit/library";
 import { PublicKey } from "o1js";
 
-interface BalancesConfig {
-    totalSupply: Balance;
-}
+// interface BalancesConfig {
+//     totalSupply: Balance;
+// }
 
 @runtimeModule()
-export class Balances extends BaseBalances<BalancesConfig> {
-    @state() public circulatingSupply = State.from<Balance>(Balance);
+export class Balances extends BaseBalances<{}> {
+    @state() public totalCirculation = State.from<Balance>(Balance);
 
     @runtimeMethod()
     public addBalance(tokenId: TokenId, address: PublicKey, amount: Balance): void {
-        const circulatingSupply = this.circulatingSupply.get();
-        const newCirculatingSupply = Balance.from(circulatingSupply.value).add(amount);
-        assert(
-            newCirculatingSupply.lessThanOrEqual(this.config.totalSupply),
-            "Circulating supply would be higher than total supply"
-        );
-        this.circulatingSupply.set(newCirculatingSupply);
+        const newTotalCirculation = Balance.from(this.totalCirculation.get().value).add(amount);
+        this.totalCirculation.set(newTotalCirculation);
+
         this.mint(tokenId, address, amount);
     }
 }

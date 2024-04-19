@@ -7,12 +7,12 @@ import { GameToken } from "./GameToken";
 import { inject } from "tsyringe";
 
 export class DeviceSessionInput extends Struct({
-    currentSessionKey: Field,
-    newSessionKey: Field,
+    currentSessionKey: UInt64,
+    newSessionKey: UInt64,
 }) {}
 
 export class DeviceSessionOutput extends Struct({
-    newSessionKey: Field,
+    newSessionKey: UInt64,
     hash: Field,
 }) {}
 
@@ -123,5 +123,37 @@ export class DRM extends RuntimeModule<{}> {
         });
 
         this.devices.set(sender, newDevices);
+
+        this.device_sessions.set(deviceIdentifierHash, UInt64.from(Field(1)));
+    }
+
+    @runtimeMethod()
+    public createSession(deviceSessionProof: DeviceSessionProof) {
+        deviceSessionProof.verify();
+
+        const deviceHash = deviceSessionProof.publicOutput.hash;
+
+        const currentSessionKey = deviceSessionProof.publicInput.currentSessionKey;
+
+        const newSessionKey = deviceSessionProof.publicOutput.newSessionKey;
+
+        assert(this.device_sessions.get(deviceHash).isSome, "Device not found");
+
+        assert(
+            this.device_sessions.get(deviceHash).value.greaterThanOrEqual(UInt64.from(Field(0))),
+            "Device not active"
+        );
+
+        assert(
+            this.device_sessions.get(deviceHash).value.equals(currentSessionKey),
+            "Invalid proof"
+        );
+
+        assert(
+            this.device_sessions.get(deviceHash).value.equals(newSessionKey).not(),
+            "Session already used"
+        );
+
+        this.device_sessions.set(deviceHash, newSessionKey);
     }
 }

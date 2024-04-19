@@ -1,0 +1,45 @@
+{
+    "name": "express",
+    "version": "1.0.0",
+    "private": true,
+    "description": "",
+    "type": "module",
+    "main": "server.ts",
+    "watch": {
+        "build-and-start": {
+            "patterns": [
+                "src"
+            ],
+            "extensions": [
+                "*"
+            ]
+        }
+    },
+    "scripts": {
+        "build": "tsc -p tsconfig.json",
+        "start": "node --experimental-specifier-resolution=node dist/server.js",
+        "build-and-start": "pnpm run build && pnpm run start",
+        "dev": "npm-watch build-and-start",
+        "test": "echo 'Add test script here'",
+        "lint": "echo 'Add lint script here'"
+    },
+    "dependencies": {
+        "cors": "^2.8.5",
+        "graphql": "^16.8.1",
+        "chain": "workspace:*",
+        "express": "^4.19.2"
+    },
+    "peerDependencies": {
+        "@proto-kit/protocol": "*",
+        "@proto-kit/library": "*",
+        "o1js": "0.13.1",
+        "tsyringe": "^4.7.0"
+    },
+    "devDependencies": {
+        "@types/cors": "^2.8.17",
+        "@types/express": "^4.17.21",
+        "@types/node": "^20",
+        "npm-watch": "^0.11.0",
+        "typescript": "^5"
+    }
+}

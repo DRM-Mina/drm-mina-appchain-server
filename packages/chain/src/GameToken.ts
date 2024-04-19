@@ -1,10 +1,13 @@
-import { UInt64 } from "@proto-kit/library";
+import "reflect-metadata";
+import { TokenId, UInt64 } from "@proto-kit/library";
 import { RuntimeModule, runtimeMethod, runtimeModule, state } from "@proto-kit/module";
 import { State, StateMap, assert } from "@proto-kit/protocol";
 import { Bool, PublicKey } from "o1js";
+import { inject } from "tsyringe";
+import { Balances } from "./balances";
 
 @runtimeModule()
-export class GameToken extends RuntimeModule<{}> {
+export class GameToken extends RuntimeModule<unknown> {
     @state() public publisher = State.from<PublicKey>(PublicKey);
 
     @state() public users = StateMap.from<PublicKey, Bool>(PublicKey, Bool);
@@ -17,13 +20,32 @@ export class GameToken extends RuntimeModule<{}> {
 
     @state() public number_of_devices_allowed = State.from<UInt64>(UInt64);
 
+    public constructor(@inject("Balances") private balances: Balances) {
+        super();
+    }
+
     @runtimeMethod()
     public buyGame(): void {
-        const gamePrice = this.gamePrice.get();
-        const discount = this.discount.get();
-        const total = gamePrice.value.sub(discount.value);
+        const gamePrice = this.gamePrice.get().orElse(UInt64.zero);
+        console.log(gamePrice);
+        const discount = this.discount.get().orElse(UInt64.zero);
+        console.log(discount);
+        const total = UInt64.from(gamePrice).sub(UInt64.from(discount));
+        console.log(total);
 
-        // Add buy logic here
+        assert(
+            this.balances
+                .getBalance(TokenId.from(0), this.transaction.sender.value)
+                .greaterThanOrEqual(total),
+            "Insufficient balance"
+        );
+
+        this.balances.transfer(
+            TokenId.from(0),
+            this.transaction.sender.value,
+            this.publisher.get().value,
+            total
+        );
 
         const sender = this.transaction.sender.value;
 
@@ -34,18 +56,28 @@ export class GameToken extends RuntimeModule<{}> {
 
     @runtimeMethod()
     public giftGame(receiver: PublicKey): void {
-        const gamePrice = this.gamePrice.get();
-        const discount = this.discount.get();
-        const total = gamePrice.value.sub(discount.value);
+        const gamePrice = this.gamePrice.get().orElse(UInt64.zero);
+        const discount = this.discount.get().orElse(UInt64.zero);
+        const total = gamePrice.sub(discount);
 
-        // Add gift logic here
+        assert(
+            this.balances
+                .getBalance(TokenId.from(0), this.transaction.sender.value)
+                .greaterThanOrEqual(total),
+            "Insufficient balance"
+        );
 
         assert(this.users.get(receiver).value, "The receiver has already bought the game");
 
+        this.balances.transfer(
+            TokenId.from(0),
+            this.transaction.sender.value,
+            this.publisher.get().value,
+            total
+        );
+
         this.users.set(receiver, Bool(true));
     }
-
-    // TODO add sender check for publisher
 
     /**
      * Set the price of the game.
@@ -64,6 +96,10 @@ export class GameToken extends RuntimeModule<{}> {
      */
     @runtimeMethod()
     public setDiscount(discount: UInt64): void {
+        assert(
+            this.gamePrice.get().value.greaterThanOrEqual(discount),
+            "Discount should be less than or equal to the game price"
+        );
         this.discount.set(discount);
     }
 
@@ -89,5 +125,12 @@ export class GameToken extends RuntimeModule<{}> {
             "Number of devices allowed should be less than or equal to 4"
         );
         this.number_of_devices_allowed.set(number);
+    }
+
+    onlyPublisher(): void {
+        assert(
+            this.transaction.sender.value.equals(this.publisher.get().value),
+            "Only the publisher can call this method"
+        );
     }
 }

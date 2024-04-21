@@ -1,7 +1,7 @@
 import { Experimental, Field, Provable, PublicKey, Struct } from "o1js";
 import { Identifiers } from "./lib/identifiers/Identifiers";
 import { RuntimeModule, runtimeMethod, runtimeModule, state } from "@proto-kit/module";
-import { State, StateMap, assert } from "@proto-kit/protocol";
+import { StateMap, assert } from "@proto-kit/protocol";
 import { UInt64 } from "@proto-kit/library";
 import { GameToken } from "./GameToken";
 import { inject } from "tsyringe";
@@ -82,37 +82,41 @@ export class DRM extends RuntimeModule<{}> {
 
         assert(this.gameToken.users.get(sender).value, "You need to buy the game");
 
-        const number_of_devices_allowed = this.gameToken.number_of_devices_allowed.get();
+        const number_of_devices_allowed = this.gameToken.number_of_devices_allowed
+            .get()
+            .orElse(UInt64.from(4));
 
         assert(
-            deviceIndex.lessThanOrEqual(number_of_devices_allowed.value),
+            UInt64.from(deviceIndex).lessThanOrEqual(number_of_devices_allowed),
             "You do not have that slot to add a device"
         );
 
         const deviceIdentifierHash = deviceProof.publicOutput;
 
+        const userDevices = this.devices.get(sender).value;
+
         const device_1 = Provable.if(
-            deviceIndex.equals(UInt64.from(Field(1))),
+            UInt64.from(deviceIndex).equals(UInt64.from(1)),
             deviceIdentifierHash,
-            this.devices.get(sender).value.device_1
+            userDevices.device_1
         );
 
         const device_2 = Provable.if(
-            deviceIndex.equals(UInt64.from(Field(2))),
+            UInt64.from(deviceIndex).equals(UInt64.from(2)),
             deviceIdentifierHash,
-            this.devices.get(sender).value.device_2
+            userDevices.device_2
         );
 
         const device_3 = Provable.if(
-            deviceIndex.equals(UInt64.from(Field(3))),
+            UInt64.from(deviceIndex).equals(UInt64.from(3)),
             deviceIdentifierHash,
-            this.devices.get(sender).value.device_3
+            userDevices.device_3
         );
 
         const device_4 = Provable.if(
-            deviceIndex.equals(UInt64.from(Field(4))),
+            UInt64.from(deviceIndex).equals(UInt64.from(4)),
             deviceIdentifierHash,
-            this.devices.get(sender).value.device_4
+            userDevices.device_4
         );
 
         const newDevices = new Devices({
@@ -124,7 +128,7 @@ export class DRM extends RuntimeModule<{}> {
 
         this.devices.set(sender, newDevices);
 
-        this.device_sessions.set(deviceIdentifierHash, UInt64.from(Field(1)));
+        this.device_sessions.set(deviceIdentifierHash, UInt64.from(1));
     }
 
     @runtimeMethod()
@@ -139,20 +143,13 @@ export class DRM extends RuntimeModule<{}> {
 
         assert(this.device_sessions.get(deviceHash).isSome, "Device not found");
 
-        assert(
-            this.device_sessions.get(deviceHash).value.greaterThanOrEqual(UInt64.from(Field(0))),
-            "Device not active"
-        );
+        const currentSession = UInt64.from(this.device_sessions.get(deviceHash).value);
 
-        assert(
-            this.device_sessions.get(deviceHash).value.equals(currentSessionKey),
-            "Invalid proof"
-        );
+        assert(currentSession.greaterThanOrEqual(UInt64.from(Field(0))), "Device not active");
 
-        assert(
-            this.device_sessions.get(deviceHash).value.equals(newSessionKey).not(),
-            "Session already used"
-        );
+        assert(currentSession.equals(currentSessionKey), "Invalid proof");
+
+        assert(currentSession.equals(newSessionKey).not(), "Session already used");
 
         this.device_sessions.set(deviceHash, newSessionKey);
     }

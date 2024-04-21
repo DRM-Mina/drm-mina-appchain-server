@@ -3,15 +3,17 @@ import { Identifiers } from "./lib/identifiers/Identifiers";
 import { RuntimeModule, runtimeMethod, runtimeModule, state } from "@proto-kit/module";
 import { StateMap, assert } from "@proto-kit/protocol";
 import { UInt64 } from "@proto-kit/library";
-import { GameToken } from "./GameToken";
+import { GameToken, UserKey } from "./GameToken";
 import { inject } from "tsyringe";
 
 export class DeviceSessionInput extends Struct({
+    gameId: UInt64,
     currentSessionKey: UInt64,
     newSessionKey: UInt64,
 }) {}
 
 export class DeviceSessionOutput extends Struct({
+    gameId: UInt64,
     newSessionKey: UInt64,
     hash: Field,
 }) {}
@@ -26,8 +28,10 @@ export const DeviceSession = Experimental.ZkProgram({
             method(publicInput: DeviceSessionInput, identifiers: Identifiers) {
                 const identifiersHash = identifiers.hash();
                 const newSessionKey = publicInput.newSessionKey;
+                const gameId = publicInput.gameId;
 
                 return {
+                    gameId: gameId,
                     newSessionKey: newSessionKey,
                     hash: identifiersHash,
                 };
@@ -62,28 +66,59 @@ export class Devices extends Struct({
     device_4: Field,
 }) {}
 
+export class DeviceKey extends Struct({
+    gameId: UInt64,
+    address: PublicKey,
+}) {
+    public static from(gameId: UInt64, address: PublicKey) {
+        return new DeviceKey({ gameId, address });
+    }
+}
+
+export class SessionKey extends Struct({
+    gameId: UInt64,
+    identifierHash: Field,
+}) {
+    public static from(gameId: UInt64, identifierHash: Field) {
+        return new SessionKey({ gameId, identifierHash });
+    }
+}
+
 @runtimeModule()
 export class DRM extends RuntimeModule<{}> {
-    @state() public devices = StateMap.from<PublicKey, Devices>(PublicKey, Devices);
+    // Mapping from game id and user address to their device identifiers
+    @state() public devices = StateMap.from<DeviceKey, Devices>(DeviceKey, Devices);
 
-    @state() public device_sessions = StateMap.from<Field, UInt64>(Field, UInt64);
+    // Mapping from game id and device identifier to their session key
+    @state() public sessions = StateMap.from<SessionKey, UInt64>(SessionKey, UInt64);
 
     public constructor(@inject("GameToken") private gameToken: GameToken) {
         super();
     }
 
+    /**
+     * Add or change device
+     * @param deviceProof proof of DeviceIdentifier program
+     * @param gameId game id
+     * @param deviceIndex index of the device (1-4)
+     */
     @runtimeMethod()
-    public addOrChangeDevice(deviceProof: DeviceIdentifierProof, deviceIndex: UInt64) {
+    public addOrChangeDevice(
+        deviceProof: DeviceIdentifierProof,
+        gameId: UInt64,
+        deviceIndex: UInt64
+    ) {
         deviceProof.verify();
 
         const sender = this.transaction.sender.value;
+        const userKey = UserKey.from(UInt64.from(gameId), sender);
 
-        assert(this.gameToken.users.get(sender).isSome, "You need to buy the game");
+        assert(this.gameToken.users.get(userKey).isSome, "You need to buy the game");
 
-        assert(this.gameToken.users.get(sender).value, "You need to buy the game");
+        assert(this.gameToken.users.get(userKey).value, "You need to buy the game");
 
         const number_of_devices_allowed = this.gameToken.number_of_devices_allowed
-            .get()
+            .get(UInt64.from(gameId))
             .orElse(UInt64.from(4));
 
         assert(
@@ -92,8 +127,9 @@ export class DRM extends RuntimeModule<{}> {
         );
 
         const deviceIdentifierHash = deviceProof.publicOutput;
+        const deviceKey = DeviceKey.from(UInt64.from(gameId), sender);
 
-        const userDevices = this.devices.get(sender).value;
+        const userDevices = this.devices.get(deviceKey).value;
 
         const device_1 = Provable.if(
             UInt64.from(deviceIndex).equals(UInt64.from(1)),
@@ -126,11 +162,17 @@ export class DRM extends RuntimeModule<{}> {
             device_4: device_4,
         });
 
-        this.devices.set(sender, newDevices);
+        this.devices.set(deviceKey, newDevices);
 
-        this.device_sessions.set(deviceIdentifierHash, UInt64.from(1));
+        const sessionKey = SessionKey.from(UInt64.from(gameId), deviceIdentifierHash);
+
+        this.sessions.set(sessionKey, UInt64.from(1));
     }
 
+    /**
+     * Create new session different from the current one
+     * @param deviceSessionProof proof of DeviceSession program
+     */
     @runtimeMethod()
     public createSession(deviceSessionProof: DeviceSessionProof) {
         deviceSessionProof.verify();
@@ -141,16 +183,19 @@ export class DRM extends RuntimeModule<{}> {
 
         const newSessionKey = deviceSessionProof.publicOutput.newSessionKey;
 
-        assert(this.device_sessions.get(deviceHash).isSome, "Device not found");
+        const gameId = deviceSessionProof.publicOutput.gameId;
+        const sessionKey = SessionKey.from(UInt64.from(gameId), deviceHash);
 
-        const currentSession = UInt64.from(this.device_sessions.get(deviceHash).value);
+        assert(this.sessions.get(sessionKey).isSome, "Device not found");
 
-        assert(currentSession.greaterThanOrEqual(UInt64.from(Field(0))), "Device not active");
+        const currentSession = UInt64.from(this.sessions.get(sessionKey).value);
+
+        assert(currentSession.greaterThanOrEqual(UInt64.from(Field(1))), "Device not active");
 
         assert(currentSession.equals(currentSessionKey), "Invalid proof");
 
         assert(currentSession.equals(newSessionKey).not(), "Session already used");
 
-        this.device_sessions.set(deviceHash, newSessionKey);
+        this.sessions.set(sessionKey, newSessionKey);
     }
 }

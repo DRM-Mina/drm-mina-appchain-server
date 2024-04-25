@@ -7,7 +7,9 @@ dotenv.config();
 
 const db = new Database();
 //@ts-ignore
-mongoose.connect(process.env.MONGO);
+mongoose.connect(
+    "mongodb+srv://kadircanbozkurt1905:wD2xRbwxDKjnUFlz@drmina.tirlqbn.mongodb.net/?retryWrites=true&w=majority&appName=DRMina"
+);
 const mongoDb = mongoose.connection;
 mongoDb.on("error", (err) => {
     console.error("MongoDB connection error:", err);
@@ -52,5 +54,5 @@ async function initTrees() {
     await TreeModel.replaceOne({ name: "sessionTree" }, sessionTreeJson, { upsert: true });
 }
 
-// insertOrUpdateGames();
-initTrees();
+insertOrUpdateGames();
+// initTrees();

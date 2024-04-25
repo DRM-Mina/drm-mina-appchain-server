@@ -1,7 +1,7 @@
 import { log } from "@proto-kit/common";
 import { TestingAppChain } from "@proto-kit/sdk";
-import { Balances } from "../src/balances";
-import { GameToken, UserKey } from "../src/GameToken";
+import { Balances } from "../src";
+import { GameToken, UserKey } from "../src";
 import {
     DRM,
     DeviceIdentifier,
@@ -9,7 +9,7 @@ import {
     DeviceSessionInput,
     DeviceKey,
     SessionKey,
-} from "../src/DRM";
+} from "../src";
 import { PrivateKey } from "o1js";
 import { BalancesKey, TokenId, UInt64 } from "@proto-kit/library";
 import { mockIdentifiers } from "./mock";

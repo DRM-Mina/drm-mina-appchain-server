@@ -1,7 +1,7 @@
-import { Balances } from "./balances";
+import { Balances } from "./modules/balances";
 import { ModulesConfig } from "@proto-kit/common";
-import { GameToken } from "./GameToken";
-import { DRM } from "./DRM";
+import { GameToken } from "./modules/GameToken";
+import { DRM } from "./modules/DRM";
 
 export const modules = {
     Balances,

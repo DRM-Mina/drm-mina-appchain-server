@@ -1,8 +1,8 @@
 import { TestingAppChain } from "@proto-kit/sdk";
-import { GameToken, UserKey } from "../src/GameToken";
+import { GameToken, UserKey } from "../src";
 import { PrivateKey } from "o1js";
 import { BalancesKey, TokenId, UInt64 } from "@proto-kit/library";
-import { Balances } from "../src/balances";
+import { Balances } from "../src";
 import { log } from "@proto-kit/common";
 
 log.setLevel("ERROR");

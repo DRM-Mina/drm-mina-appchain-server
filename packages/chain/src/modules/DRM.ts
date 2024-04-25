@@ -1,5 +1,5 @@
 import { Experimental, Field, Provable, PublicKey, Struct } from "o1js";
-import { Identifiers } from "./lib/identifiers/Identifiers";
+import { Identifiers } from "../lib/identifiers/Identifiers";
 import { RuntimeModule, runtimeMethod, runtimeModule, state } from "@proto-kit/module";
 import { StateMap, assert } from "@proto-kit/protocol";
 import { UInt64 } from "@proto-kit/library";

@@ -1,6 +1,6 @@
 import { PrivateKey, UInt64 } from "o1js";
 import { games } from "./mock.js";
-import { client } from "../src/client.config.js";
+import { client } from "../src";
 
 const startGames = async () => {
     const publisherKey = PrivateKey.random();

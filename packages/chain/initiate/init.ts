@@ -1,6 +1,6 @@
 import { PrivateKey, UInt64 } from "o1js";
 import { games } from "./mock.js";
-import { client } from "../src";
+import { client } from "../src/index.js";
 
 const startGames = async () => {
     const publisherKey = PrivateKey.random();
@@ -24,11 +24,8 @@ const startGames = async () => {
         });
 
         tx.transaction!.nonce = UInt64.from(i);
-        console.log("Signing transaction", i);
-        tx.transaction?.sign(publisherKey);
-        console.log("Sending transaction", i);
+        tx.transaction = tx.transaction?.sign(publisherKey);
         await tx.send();
-        console.log("Sent transaction", i);
     }
 };
 

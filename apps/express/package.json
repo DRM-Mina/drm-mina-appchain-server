@@ -20,6 +20,7 @@
         "start": "node --experimental-specifier-resolution=node dist/server.js",
         "build-and-start": "pnpm run build && pnpm run start",
         "dev": "npm-watch build-and-start",
+        "light-dev": "npm-watch build-and-start",
         "test": "echo 'Add test script here'",
         "lint": "echo 'Add lint script here'"
     },

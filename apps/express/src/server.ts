@@ -78,6 +78,48 @@ app.get("/wishlist/:publicKey", async (req, res) => {
     }
 });
 
+app.post("/slot-names/:publicKey", async (req, res) => {
+    const { publicKey } = req.params;
+    const { gameId } = req.body;
+    const { slotNames } = req.body;
+
+    console.log(slotNames);
+
+    const gameIdstr = String(gameId);
+
+    if (slotNames) {
+        try {
+            const user = await User.findOne({ publicKey });
+            if (user) {
+                user.slots.set(gameIdstr, {
+                    slots: user.slots.get(gameIdstr)?.slots || [],
+                    slotNames: slotNames,
+                });
+                await user.save();
+                res.status(201).send({ message: "Slots saved" });
+                logger.info("Slots Saved user" + publicKey + ".");
+            }
+        } catch (err) {
+            console.error(err);
+            res.status(503).send({ message: "Error saving slots" });
+        }
+    } else {
+        try {
+            const user = await User.findOne({ publicKey });
+            logger.info("Slots Sended user" + publicKey + ".");
+            res.json(
+                user && user.slots.get(gameIdstr)?.slotNames
+                    ? user.slots.get(gameIdstr)?.slotNames
+                    : ["Slot 1", "Slot 2", "Slot 3", "Slot 4"]
+            );
+            console.log(user!.slots.get(gameIdstr)?.slotNames);
+        } catch (err) {
+            console.error(err);
+            res.status(504).send({ message: "Error retrieving slots" });
+        }
+    }
+});
+
 app.listen(port, () => {
     logger.info(`Server running on http://localhost:${port}`);
 });

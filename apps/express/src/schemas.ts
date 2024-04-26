@@ -26,6 +26,20 @@ const UserSchema = new Schema(
             required: true,
         },
         wishlistedGames: [Number],
+        slots: {
+            type: Map,
+            of: {
+                slotNames: {
+                    type: [String],
+                    default: ["Slot 1", "Slot 2", "Slot 3", "Slot 4"],
+                },
+                slots: {
+                    type: [String],
+                    default: ["", "", "", ""],
+                },
+            },
+            default: () => ({}),
+        },
     },
     { versionKey: false }
 );

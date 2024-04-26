@@ -26,33 +26,34 @@ async function insertOrUpdateGames() {
             await Game.updateOne({ gameId: game.id }, { $set: game }, { upsert: true });
         }
         console.log("Games have been successfully added or updated in the database");
+        return;
     } catch (error) {
         console.error("Error inserting or updating games in the database:", error);
     }
 }
 
-async function initTrees() {
-    const deviceTree = new MerkleMap();
-    const deviceTreeJson = deviceTree.tree.toJSON() as {
-        height: number;
-        nodes: { [key: string]: string };
-        name?: string;
-    };
-    deviceTreeJson.name = "deviceTree";
+// async function initTrees() {
+//     const deviceTree = new MerkleMap();
+//     const deviceTreeJson = deviceTree.tree.toJSON() as {
+//         height: number;
+//         nodes: { [key: string]: string };
+//         name?: string;
+//     };
+//     deviceTreeJson.name = "deviceTree";
 
-    await TreeModel.replaceOne({ name: "deviceTree" }, deviceTreeJson, { upsert: true });
+//     await TreeModel.replaceOne({ name: "deviceTree" }, deviceTreeJson, { upsert: true });
 
-    const sessionTree = new MerkleMap();
-    const sessionTreeJson = sessionTree.tree.toJSON() as {
-        height: number;
-        nodes: { [key: string]: string };
-        name?: string;
-    };
+//     const sessionTree = new MerkleMap();
+//     const sessionTreeJson = sessionTree.tree.toJSON() as {
+//         height: number;
+//         nodes: { [key: string]: string };
+//         name?: string;
+//     };
 
-    sessionTreeJson.name = "sessionTree";
+//     sessionTreeJson.name = "sessionTree";
 
-    await TreeModel.replaceOne({ name: "sessionTree" }, sessionTreeJson, { upsert: true });
-}
+//     await TreeModel.replaceOne({ name: "sessionTree" }, sessionTreeJson, { upsert: true });
+// }
 
-insertOrUpdateGames();
+await insertOrUpdateGames();
 // initTrees();

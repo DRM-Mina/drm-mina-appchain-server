@@ -6,7 +6,15 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import serveStatic from "serve-static";
+import { client } from "chain";
+import { JsonProof, PrivateKey, UInt64 } from "o1js";
+import { DeviceSessionProof } from "chain/dist/DRM.js";
+
 dotenv.config();
+
+const senderKey = PrivateKey.random();
+const sender = senderKey.toPublicKey();
+let nonce = 0;
 
 //@ts-ignore
 mongoose.connect(process.env.MONGO);
@@ -18,6 +26,11 @@ mongoDb.on("error", (err) => {
 mongoDb.once("open", function () {
     logger.info("Connected successfully to MongoDB");
 });
+
+(async () => {
+    await client.start();
+    console.log("Client started");
+})();
 
 const app = express();
 const port = 3152;
@@ -120,104 +133,32 @@ app.post("/slot-names/:publicKey", async (req, res) => {
     }
 });
 
+app.post("/submit-session", async (req, res) => {
+    const { proof } = req.body;
+    logger.info("Session received");
+
+    try {
+        const sessionProof = DeviceSessionProof.fromJSON(JSON.parse(proof) as JsonProof);
+        const drm = client.runtime.resolve("DRM");
+        const tx = await client.transaction(sender, () => {
+            drm.createSession(sessionProof);
+        });
+
+        tx.transaction!.nonce = UInt64.from(nonce);
+        tx.transaction = tx.transaction?.sign(senderKey);
+        await tx.send();
+
+        logger.info("Session submitted: " + sessionProof.publicOutput.newSessionKey.toString());
+
+        nonce++;
+
+        res.status(201).send({ message: "Session submitted" });
+    } catch (err) {
+        logger.error(err);
+        res.status(505).send({ message: "Error submitting session" });
+    }
+});
+
 app.listen(port, () => {
     logger.info(`Server running on http://localhost:${port}`);
 });
-
-// import express, { Express, Request, Response } from "express";
-// import { client } from "chain";
-// import { PrivateKey, UInt64 } from "o1js";
-// import { TokenId, Balance, BalancesKey } from "@proto-kit/library";
-
-// const server = express();
-// const serverKey = PrivateKey.random();
-// const serverPubKey = serverKey.toPublicKey();
-// await client.start();
-
-// server.get("/", async (req, res) => {
-//     res.send("Hello World!");
-// });
-
-// server.get("/add", async (req, res) => {
-//     const balances = client.runtime.resolve("Balances");
-//     const tx = await client.transaction(serverPubKey, () => {
-//         balances.addBalance(TokenId.from(0), serverPubKey, Balance.from(1000));
-//     });
-//     tx.transaction = tx.transaction?.sign(serverKey);
-//     await tx.send();
-//     res.send("done");
-// });
-// server.get("/getBalance", async (req, res) => {
-//     const key = new BalancesKey({
-//         tokenId: TokenId.from(0),
-//         address: serverPubKey,
-//     });
-//     const balance = await client.query.runtime.Balances.balances.get(key);
-//     res.send("Balance: " + balance);
-// });
-
-// server.listen(3000, () => {
-//     console.log("Server is running on http://localhost:3000");
-// });
-
-// app.get("/device-tree-leaf/:key", async (req, res) => {
-//     const { key } = req.params;
-//     const leaf = deviceTree?.get(Field(key));
-//     if (leaf) {
-//         console.log("Device Tree Leaf Sended.");
-//         res.json(leaf);
-//     } else {
-//         res.status(404).send({ message: "Leaf not found" });
-//     }
-// });
-
-// app.get("/session-tree-leaf/:key", async (req, res) => {
-//     const { key } = req.params;
-//     const leaf = sessionTree?.get(Field(key));
-//     if (leaf) {
-//         console.log("Session Tree Leaf Sended.");
-//         res.json(leaf);
-//     } else {
-//         res.status(404).send({ message: "Leaf not found" });
-//     }
-// });
-
-// app.get("/device-tree-witness/:key", async (req, res) => {
-//     const { key } = req.params;
-//     const witness = deviceTree?.getWitness(Field(key));
-//     if (witness) {
-//         console.log("Device Tree Witness Sended.");
-//         res.json(witness);
-//     } else {
-//         res.status(404).send({ message: "Witness not found" });
-//     }
-// });
-
-// app.get("/session-tree-witness/:key", async (req, res) => {
-//     const { key } = req.params;
-//     const witness = sessionTree?.getWitness(Field(key));
-//     if (witness) {
-//         console.log("Session Tree Witness Sended.");
-//         res.json(witness);
-//     } else {
-//         res.status(404).send({ message: "Witness not found" });
-//     }
-// });
-
-// app.post("/device-tree-leaf", async (req, res) => {
-//     const { key, value } = req.body;
-//     deviceTree?.set(Field(key), Field(value));
-//     // @ts-ignore
-//     await saveTreeToMongo(deviceTree, "deviceTree");
-//     console.log("Device Tree Leaf Set.");
-//     res.status(201).send({ message: "Leaf set" });
-// });
-
-// app.post("/session-tree-leaf", async (req, res) => {
-//     const { key, value } = req.body;
-//     sessionTree?.set(Field(key), Field(value));
-//     // @ts-ignore
-//     await saveTreeToMongo(sessionTree, "sessionTree");
-//     console.log("Session Tree Leaf Set.");
-//     res.status(201).send({ message: "Leaf set" });
-// });

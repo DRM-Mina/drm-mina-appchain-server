@@ -1,5 +1,5 @@
 {
-    "name": "chain",
+    "name": "drm-mina-chain",
     "version": "1.0.0",
     "type": "module",
     "main": "dist/index.js",

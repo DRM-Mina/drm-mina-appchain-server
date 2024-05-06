@@ -6,9 +6,9 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import serveStatic from "serve-static";
-import { client } from "chain";
+import { client } from "chain/dist/src/index.js";
 import { JsonProof, PrivateKey, UInt64 } from "o1js";
-import { DeviceSessionProof } from "chain/dist/DRM.js";
+import { DeviceSessionProof } from "chain/dist/src/index.js";
 
 dotenv.config();
 

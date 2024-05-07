@@ -1,0 +1,9 @@
+version: "3"
+services:
+    api:
+        build: .
+        ports:
+            - "8080:8080"
+            - "3152:3152"
+        command: sh -c "pnpm light-dev"
+        restart: unless-stopped

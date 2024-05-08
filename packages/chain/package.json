@@ -1,8 +1,8 @@
 {
     "name": "drm-mina-chain",
-    "version": "1.0.0",
+    "version": "1.1.2",
     "type": "module",
-    "main": "dist/index.js",
+    "main": "dist/src/index.js",
     "watch": {
         "build-and-start": {
             "patterns": [

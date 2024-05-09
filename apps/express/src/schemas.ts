@@ -44,15 +44,5 @@ const UserSchema = new Schema(
     { versionKey: false }
 );
 
-const TreeSchema = new Schema(
-    {
-        name: { type: String, unique: true },
-        height: { type: Number, required: true },
-        nodes: { type: Object, of: String },
-    },
-    { versionKey: false }
-);
-
 export const User = mongoose.model("User", UserSchema);
 export const Game = mongoose.model("Game", gameSchema);
-export const TreeModel = mongoose.model("Tree", TreeSchema);

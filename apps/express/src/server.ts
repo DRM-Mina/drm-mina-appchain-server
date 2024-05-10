@@ -50,14 +50,34 @@ app.use(serveStatic("public"));
 
 app.get("/game-data", async (req, res) => {
     res.setHeader("Content-Type", "application/json");
-    const games = await Game.find({});
-    logger.info("Game Data Sended.");
-    res.json(games);
+    try {
+        const games = await Game.find({});
+        logger.info("Game Data Sended.");
+        res.json(games);
+    } catch (err) {
+        logger.error(err);
+        res.status(500).send({ message: "Error retrieving game data" });
+    }
 });
 
 app.post("/wishlist/:publicKey", async (req, res) => {
     const { publicKey } = req.params;
     const { gameId } = req.body;
+
+    if (!gameId) {
+        res.status(400).send({ message: "Game ID not provided" });
+        return;
+    }
+
+    if (!publicKey) {
+        res.status(400).send({ message: "Public key not provided" });
+        return;
+    }
+
+    if (!MINA_ADDRESS_REGEX.test(publicKey)) {
+        res.status(400).send({ message: "Invalid public key" });
+        return;
+    }
 
     try {
         const user = await User.findOne({ publicKey });
@@ -65,30 +85,37 @@ app.post("/wishlist/:publicKey", async (req, res) => {
         if (user) {
             if (user.wishlistedGames.includes(gameId)) {
                 await User.updateOne({ publicKey }, { $pull: { wishlistedGames: gameId } });
-                res.status(201).send({ message: "Game removed from wishlist" });
+                res.status(200).send({ message: "Game removed from wishlist" });
                 logger.info("Game " + gameId + " removed from wishlist user" + publicKey + ".");
             } else {
                 await User.updateOne({ publicKey }, { $addToSet: { wishlistedGames: gameId } });
-                res.status(202).send({ message: "Game added to wishlist" });
+                res.status(200).send({ message: "Game added to wishlist" });
                 logger.info("Game " + gameId + " added to wishlist user" + publicKey + ".");
             }
         } else {
-            if (MINA_ADDRESS_REGEX.test(publicKey)) {
-                await User.create({ publicKey, wishlistedGames: [gameId] });
-                res.status(201).send({ message: "Game added to wishlist" });
-                logger.info("Game " + gameId + " added to wishlist user" + publicKey + ".");
-            } else {
-                res.status(405).send({ message: "Invalid public key" });
-            }
+            await User.create({ publicKey, wishlistedGames: [gameId] });
+            logger.info("User " + publicKey + " created.");
+            res.status(200).send({ message: "Game added to wishlist" });
+            logger.info("Game " + gameId + " added to wishlist user" + publicKey + ".");
         }
     } catch (err) {
         console.error(err);
-        res.status(501).send({ message: "Error when adding game to wishlist" });
+        res.status(500).send({ message: "Error when adding game to wishlist" });
     }
 });
 
 app.get("/wishlist/:publicKey", async (req, res) => {
     const { publicKey } = req.params;
+
+    if (!publicKey) {
+        res.status(400).send({ message: "Public key not provided" });
+        return;
+    }
+
+    if (!MINA_ADDRESS_REGEX.test(publicKey)) {
+        res.status(400).send({ message: "Invalid public key" });
+        return;
+    }
 
     try {
         const user = await User.findOne({ publicKey });
@@ -96,7 +123,7 @@ app.get("/wishlist/:publicKey", async (req, res) => {
         res.json(user ? user.wishlistedGames : []);
     } catch (err) {
         console.error(err);
-        res.status(502).send({ message: "Error retrieving wishlist" });
+        res.status(500).send({ message: "Error retrieving wishlist" });
     }
 });
 
@@ -105,11 +132,50 @@ app.post("/slot-names/:publicKey", async (req, res) => {
     const { gameId } = req.body;
     const { slotNames } = req.body;
 
-    console.log(slotNames);
+    if (!gameId) {
+        res.status(400).send({ message: "Game ID not provided" });
+        return;
+    }
 
-    const gameIdstr = String(gameId);
+    const gameIdNumber = Number(gameId);
+    if (isNaN(gameIdNumber)) {
+        res.status(400).send({ message: "Game ID must be a number" });
+        return;
+    }
+
+    if (gameIdNumber < 0 || gameIdNumber > 30) {
+        res.status(400).send({ message: "Invalid game ID" });
+        return;
+    }
+
+    if (!publicKey) {
+        res.status(400).send({ message: "Public key not provided" });
+        return;
+    }
+
+    if (!MINA_ADDRESS_REGEX.test(publicKey)) {
+        res.status(400).send({ message: "Invalid public key" });
+        return;
+    }
+
+    const gameIdstr = String(gameIdNumber);
 
     if (slotNames) {
+        if (!Array.isArray(slotNames)) {
+            res.status(400).send({ message: "Slot names must be an array" });
+            return;
+        }
+
+        if (slotNames.length > 4 || slotNames.length < 1) {
+            res.status(400).send({ message: "Slot names must be between 1 and 4" });
+            return;
+        }
+
+        if (slotNames.some((slotName) => typeof slotName !== "string")) {
+            res.status(400).send({ message: "Slot names must be strings" });
+            return;
+        }
+
         try {
             const user = await User.findOne({ publicKey });
             if (user) {
@@ -118,32 +184,45 @@ app.post("/slot-names/:publicKey", async (req, res) => {
                     slotNames: slotNames,
                 });
                 await user.save();
-                res.status(201).send({ message: "Slots saved" });
+                res.status(200).send({ message: "Slots saved" });
                 logger.info("Slots Saved user" + publicKey + ".");
+            } else {
+                res.status(404).send({ message: "User not found" });
+                return;
             }
         } catch (err) {
             console.error(err);
-            res.status(503).send({ message: "Error saving slots" });
+            res.status(500).send({ message: "Error saving slots" });
         }
     } else {
         try {
             const user = await User.findOne({ publicKey });
-            logger.info("Slots Sended user" + publicKey + ".");
-            res.json(
-                user && user.slots.get(gameIdstr)?.slotNames
-                    ? user.slots.get(gameIdstr)?.slotNames
-                    : ["Slot 1", "Slot 2", "Slot 3", "Slot 4"]
-            );
-            console.log(user!.slots.get(gameIdstr)?.slotNames);
+            if (user) {
+                logger.info("Slots Sended user" + publicKey + ".");
+                res.json(
+                    user && user.slots.get(gameIdstr)?.slotNames
+                        ? user.slots.get(gameIdstr)?.slotNames
+                        : ["Slot 1", "Slot 2", "Slot 3", "Slot 4"]
+                );
+            } else {
+                res.status(404).send({ message: "User not found" });
+                return;
+            }
         } catch (err) {
             console.error(err);
-            res.status(504).send({ message: "Error retrieving slots" });
+            res.status(500).send({ message: "Error retrieving slots" });
         }
     }
 });
 
 app.post("/submit-session", async (req, res) => {
     const { proof } = req.body;
+
+    if (!proof) {
+        res.status(400).send({ message: "Proof not provided" });
+        return;
+    }
+
     logger.info("Session received");
 
     try {
@@ -161,16 +240,21 @@ app.post("/submit-session", async (req, res) => {
 
         nonce++;
 
-        res.status(201).send({ message: "Session submitted" });
+        res.status(200).send({ message: "Session submitted" });
     } catch (err) {
         logger.error(err);
-        res.status(505).send({ message: "Error submitting session" });
+        res.status(500).send({ message: "Error submitting session" });
     }
 });
 
 // TODO: Add limit rate
 app.post("/get-signed-url", async (req, res) => {
     const { fileName } = req.body;
+
+    if (!fileName) {
+        res.status(400).send({ message: "File name not provided" });
+        return;
+    }
 
     try {
         const params = {

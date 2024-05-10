@@ -6,15 +6,24 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import serveStatic from "serve-static";
-import { client } from "chain/dist/src/index.js";
+import { client } from "drm-mina-chain/dist/src/index.js";
 import { JsonProof, PrivateKey, UInt64 } from "o1js";
-import { DeviceSessionProof } from "chain/dist/src/index.js";
+import { DeviceSessionProof } from "drm-mina-chain/dist/src/index.js";
+import AWS from "aws-sdk";
 
 dotenv.config();
 
 const senderKey = PrivateKey.random();
 const sender = senderKey.toPublicKey();
 let nonce = 0;
+
+const s3 = new AWS.S3({
+    // @ts-ignore
+    endpoint: new AWS.Endpoint(process.env.CF_ENDPOINT),
+    accessKeyId: process.env.CF_ACCESS_KEY_ID,
+    secretAccessKey: process.env.CF_SECRET_ACCESS_KEY,
+    signatureVersion: "v4",
+});
 
 //@ts-ignore
 mongoose.connect(process.env.MONGO);
@@ -156,6 +165,25 @@ app.post("/submit-session", async (req, res) => {
     } catch (err) {
         logger.error(err);
         res.status(505).send({ message: "Error submitting session" });
+    }
+});
+
+// TODO: Add limit rate
+app.post("/get-signed-url", async (req, res) => {
+    const { fileName } = req.body;
+
+    try {
+        const params = {
+            Bucket: process.env.CF_BUCKET,
+            Key: fileName,
+            Expires: 600,
+        };
+        const url = s3.getSignedUrl("getObject", params);
+        logger.info("Signed URL generated: " + url);
+        res.status(201).send({ url });
+    } catch (err) {
+        logger.error(err);
+        res.status(506).send({ message: "Error generating signed url" });
     }
 });
 

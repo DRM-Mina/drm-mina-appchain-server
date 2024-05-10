@@ -25,9 +25,10 @@
         "lint": "echo 'Add lint script here'"
     },
     "dependencies": {
-        "chain": "workspace:*",
+        "aws-sdk": "^2.1617.0",
         "cors": "^2.8.5",
         "dotenv": "^16.4.5",
+        "drm-mina-chain": "workspace:*",
         "express": "^4.19.2",
         "graphql": "^16.8.1",
         "mongodb": "^6.5.0",

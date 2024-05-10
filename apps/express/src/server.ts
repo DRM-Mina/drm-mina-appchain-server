@@ -85,7 +85,7 @@ app.post("/wishlist/:publicKey", async (req, res) => {
         if (user) {
             if (user.wishlistedGames.includes(gameId)) {
                 await User.updateOne({ publicKey }, { $pull: { wishlistedGames: gameId } });
-                res.status(200).send({ message: "Game removed from wishlist" });
+                res.status(201).send({ message: "Game removed from wishlist" });
                 logger.info("Game " + gameId + " removed from wishlist user" + publicKey + ".");
             } else {
                 await User.updateOne({ publicKey }, { $addToSet: { wishlistedGames: gameId } });
@@ -198,15 +198,36 @@ app.post("/slot-names/:publicKey", async (req, res) => {
         try {
             const user = await User.findOne({ publicKey });
             if (user) {
-                logger.info("Slots Sended user" + publicKey + ".");
-                res.json(
-                    user && user.slots.get(gameIdstr)?.slotNames
-                        ? user.slots.get(gameIdstr)?.slotNames
-                        : ["Slot 1", "Slot 2", "Slot 3", "Slot 4"]
-                );
+                if (
+                    user.slots.get(gameIdstr)?.slotNames &&
+                    (user.slots.get(gameIdstr)?.slotNames.length || [].length) > 0
+                ) {
+                    logger.info("Slot Names Sended user" + publicKey + ".");
+                    res.json(user.slots.get(gameIdstr)?.slotNames);
+                } else {
+                    user.slots.set(gameIdstr, {
+                        slots: user.slots.get(gameIdstr)?.slots || [],
+                        slotNames: ["Slot 1", "Slot 2", "Slot 3", "Slot 4"],
+                    });
+                    await user.save();
+                    res.json(user.slots.get(gameIdstr)?.slotNames);
+                    logger.info("Slot Names Sended user" + publicKey + ".");
+                }
             } else {
-                res.status(404).send({ message: "User not found" });
-                return;
+                User.create({
+                    publicKey,
+                    slots: new Map([
+                        [
+                            gameIdstr,
+                            {
+                                slots: ["", "", "", ""],
+                                slotNames: ["Slot 1", "Slot 2", "Slot 3", "Slot 4"],
+                            },
+                        ],
+                    ]),
+                });
+                logger.info("User " + publicKey + " created.");
+                res.json(["Slot 1", "Slot 2", "Slot 3", "Slot 4"]);
             }
         } catch (err) {
             console.error(err);

@@ -1,5 +1,3 @@
-import { Field, MerkleMap } from "o1js";
-
 const games = [
     {
         id: 1,
@@ -134,13 +132,8 @@ export interface Game {
 
 class Database {
     games: Game[];
-    merkleRoot: Field;
-    merkleMap: MerkleMap;
-
     constructor() {
         this.games = games;
-        this.merkleMap = new MerkleMap();
-        this.merkleRoot = this.merkleMap.getRoot();
     }
 }
 

@@ -31,6 +31,7 @@
         "drm-mina-chain": "workspace:*",
         "express": "^4.19.2",
         "graphql": "^16.8.1",
+        "mina-signer": "^3.0.7",
         "mongodb": "^6.5.0",
         "mongoose": "^8.2.4",
         "serve-static": "^1.15.0",

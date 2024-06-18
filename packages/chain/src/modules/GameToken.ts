@@ -43,7 +43,6 @@ export class GameToken extends RuntimeModule<{}> {
     }
 
     /**
-     *
      * @param publisher public key of the publisher
      * @param price price of the game
      * @param discount discount amount for the game
@@ -59,6 +58,7 @@ export class GameToken extends RuntimeModule<{}> {
         number_of_devices_allowed: UInt64
     ): void {
         // TODO: Add fee for creating a new game
+        assert(price.value.greaterThanOrEqual(0), "Price should be greater than or equal to 0");
         assert(
             price.value.greaterThanOrEqual(discount.value),
             "Discount should be less than or equal to the game price"
@@ -66,6 +66,10 @@ export class GameToken extends RuntimeModule<{}> {
         assert(
             timeoutInterval.value.greaterThanOrEqual(120),
             "Timeout interval should be greater than or equal to 120 minutes"
+        );
+        assert(
+            number_of_devices_allowed.value.greaterThanOrEqual(1),
+            "Number of devices allowed should be greater than or equal to 1"
         );
         assert(
             number_of_devices_allowed.value.lessThanOrEqual(4),

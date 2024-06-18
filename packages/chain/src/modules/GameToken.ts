@@ -17,6 +17,12 @@ export class UserKey extends Struct({
 
 @runtimeModule()
 export class GameToken extends RuntimeModule<{}> {
+    // Fee amount for creating a new game
+    @state() public feeAmount = State.from<UInt64>(UInt64);
+
+    // Receiver of the fee
+    @state() public feeReceiver = State.from<PublicKey>(PublicKey);
+
     // Total number of games
     @state() public totalGameNumber = State.from<UInt64>(UInt64);
 
@@ -57,7 +63,24 @@ export class GameToken extends RuntimeModule<{}> {
         timeoutInterval: UInt64,
         number_of_devices_allowed: UInt64
     ): void {
-        // TODO: Add fee for creating a new game
+        const sender = this.transaction.sender.value;
+        const feeReceiver = this.feeReceiver.get().value;
+        const tokenId = TokenId.from(0);
+
+        assert(
+            this.balances
+                .getBalance(tokenId, sender)
+                .greaterThanOrEqual(this.feeAmount.get().value),
+            "Insufficient balance"
+        );
+
+        this.balances.transfer(
+            tokenId,
+            sender,
+            feeReceiver,
+            Balance.from(this.feeAmount.get().value)
+        );
+
         assert(price.value.greaterThanOrEqual(0), "Price should be greater than or equal to 0");
         assert(
             price.value.greaterThanOrEqual(discount.value),
@@ -96,8 +119,8 @@ export class GameToken extends RuntimeModule<{}> {
             "Game does not exist"
         );
 
-        const gamePrice = this.gamePrice.get(UInt64.from(gameId)).orElse(UInt64.from(10));
-        const discount = this.discount.get(UInt64.from(gameId)).orElse(UInt64.from(5));
+        const gamePrice = this.gamePrice.get(UInt64.from(gameId)).orElse(UInt64.from(0));
+        const discount = this.discount.get(UInt64.from(gameId)).orElse(UInt64.from(0));
         const total = UInt64.from(gamePrice.value).sub(UInt64.from(discount.value));
         const sender = this.transaction.sender.value;
         const tokenId = TokenId.from(0);
@@ -163,8 +186,20 @@ export class GameToken extends RuntimeModule<{}> {
     }
 
     /**
+     * Set the fee receiver.
+     * @param receiver Public key of the receiver.
+     */
+    @runtimeMethod()
+    public setFeeAmount(amount: UInt64): void {
+        assert(
+            this.transaction.sender.value.equals(this.feeReceiver.get().value),
+            "Only the feeReceiver can call this method"
+        );
+        this.feeAmount.set(UInt64.from(amount));
+    }
+
+    /**
      * Set the price of the game.
-     * Only the publisher can call this method.
      * @param price Price of the game in nanoMina.
      */
     @runtimeMethod()
@@ -175,7 +210,6 @@ export class GameToken extends RuntimeModule<{}> {
 
     /**
      * Set the discount amount for the game.
-     * Only the publisher can call this method.
      * @param discount Discount amount for the game in nanoMina.
      */
     @runtimeMethod()
@@ -190,7 +224,6 @@ export class GameToken extends RuntimeModule<{}> {
 
     /**
      * Set the timeout interval for the proof to be valid.
-     * Only the publisher can call this method.
      * @param interval Timeout interval for the proof to be valid.
      */
     @runtimeMethod()
@@ -201,7 +234,6 @@ export class GameToken extends RuntimeModule<{}> {
 
     /**
      * Set the number of devices allowed for the game.
-     * Only the publisher can call this method.
      * @param number Number of devices allowed for the game.
      */
     @runtimeMethod()

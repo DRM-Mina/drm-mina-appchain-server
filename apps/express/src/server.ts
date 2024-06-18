@@ -8,8 +8,9 @@ import cors from "cors";
 import serveStatic from "serve-static";
 import { client } from "drm-mina-chain/dist/src/index.js";
 import { JsonProof, PrivateKey, UInt64 } from "o1js";
-import { DeviceSessionProof } from "drm-mina-chain/dist/src/index.js";
+import { DeviceSessionProof, ProtoUInt64 } from "drm-mina-chain/dist/src/index.js";
 import AWS from "aws-sdk";
+import Client from "mina-signer";
 
 dotenv.config();
 
@@ -40,6 +41,8 @@ mongoDb.once("open", function () {
     await client.start();
     console.log("Client started");
 })();
+
+const verifyClient = new Client({ network: "mainnet" });
 
 const app = express();
 const port = 3152;
@@ -289,6 +292,55 @@ app.post("/get-signed-url", async (req, res) => {
     } catch (err) {
         logger.error(err);
         res.status(506).send({ message: "Error generating signed url" });
+    }
+});
+
+app.post("/change-game-data", async (req, res) => {
+    const { signature } = req.body;
+
+    if (!signature) {
+        res.status(400).send({ message: "Signed data not provided" });
+        return;
+    }
+
+    try {
+        const verifyResult = verifyClient.verifyMessage(signature);
+
+        console.log(verifyResult);
+
+        if (!verifyResult) {
+            res.status(401).send({ message: "Invalid signature" });
+            return;
+        }
+        const { publicKey, data } = signature;
+        const updatedData = JSON.parse(data);
+        const { gameId, name, creator, description, date, tags } = updatedData;
+
+        const publisher = await client.query.runtime.GameToken.publisher.get(
+            ProtoUInt64.from(gameId)
+        );
+        console.log(publisher?.toBase58());
+        if (publisher && publisher.toBase58() !== publicKey) {
+            res.status(402).send({ message: "Unauthorized" });
+            return;
+        }
+
+        const currentTime = Date.now();
+        if (currentTime > Number(date) + 180000) {
+            res.status(403).send({ message: "Expired" });
+            return;
+        }
+
+        await Game.updateOne(
+            { gameId: gameId },
+            { $set: { name, creator, description, releaseDate: date, tags } },
+            { upsert: true }
+        );
+
+        res.status(200).send({ message: "Game data changed" });
+    } catch (err) {
+        logger.error(err);
+        res.status(500).send({ message: "Error changing game data" });
     }
 });
 

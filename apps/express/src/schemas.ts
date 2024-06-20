@@ -8,11 +8,8 @@ const gameSchema = new mongoose.Schema(
         name: String,
         description: String,
         creator: String,
-        cover: String,
-        price: Number,
-        discount: Number,
-        rating: Number,
-        releaseDate: String,
+        imageFolder: String,
+        imageCount: Number,
         tags: [String],
     },
     { versionKey: false }

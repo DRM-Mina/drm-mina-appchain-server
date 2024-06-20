@@ -94,6 +94,7 @@ const games = [
 export interface Game {
     id: number;
     name: string;
+    description: string;
     creator: string;
     imageFolder: string;
     imageCount: number;

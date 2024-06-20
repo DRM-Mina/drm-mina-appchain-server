@@ -1,93 +1,72 @@
 const games = [
     {
         id: 1,
+        name: "Warrior: The Diamond Forest",
+        description:
+            "Embark on an epic adventure in 'Warrior: The Diamond Forest,' a thrilling pixelated action game that takes you deep into the heart of a mysterious and dark forest. You play as a brave warrior equipped with a sharp blade and a sturdy shield, facing off against menacing creatures that lurk in the shadows.",
+        creator: "Eren Kardas",
+        imageFolder: "diamond",
+        imageCount: 3,
+        tags: ["Action", "Adventure", "Survival"],
+    },
+    {
+        id: 2,
+        name: "KindaSus",
+        description:
+            "As the captain of this high-tech spaceship, your mission is to navigate through the cosmos, using your ship's mechanical arms to grab and collect the floating imposters. Each character you collect brings you closer to completing your mission, but be prepared for challenges along the way.",
+        creator: "Shap Shup Games",
+        imageFolder: "kindasus",
+        imageCount: 3,
+        tags: ["Simulation", "Puzzle"],
+    },
+    {
+        id: 3,
         name: "Barbarian",
         description:
             "Barbarian is a single-player action-adventure game where you play as a barbarian warrior.",
         creator: "Eren Kardas",
-        cover: "images/barbarian.webp",
-        price: 0,
-        discount: 0,
-        rating: 4.5,
-        releaseDate: "2021-09-15",
-        tags: ["Action", "Adventure", "RPG"],
-    },
-    {
-        id: 2,
-        name: "Car Race",
-        description:
-            "Car Race is a fast-paced racing game where you compete against other players in various tracks.",
-        creator: "Hokus Pokus Games",
-        cover: "images/car-race.webp",
-        price: 0,
-        discount: 0,
-        rating: 3.5,
-        releaseDate: "2021-09-15",
-        tags: ["Racing", "Sports"],
-    },
-    {
-        id: 3,
-        name: "Cyberpunk",
-        description:
-            "Cyberpunk is a futuristic open-world game where you navigate a dystopian city and uncover its secrets.",
-        creator: "Cyborg Games",
-        cover: "images/cyberpunk.webp",
-        price: 0,
-        discount: 0,
-        rating: 4.5,
-        releaseDate: "2021-09-15",
+        imageFolder: "barbarian",
+        imageCount: 0,
         tags: ["Action", "Adventure", "RPG"],
     },
     {
         id: 4,
-        name: "Doll House",
+        name: "Car Race",
         description:
-            "Doll House is a horror game where you explore a haunted dollhouse and solve puzzles to uncover its mysteries.",
-        creator: "Ponchik Games",
-        cover: "images/doll-house.webp",
-        price: 0,
-        discount: 0,
-        rating: 4.5,
-        releaseDate: "2021-09-15",
-        tags: ["Action", "Adventure", "RPG"],
+            "Car Race is a fast-paced racing game where you compete against other players in various tracks.",
+        creator: "Hokus Pokus Games",
+        imageFolder: "car-race",
+        imageCount: 0,
+        tags: ["Racing", "Sports"],
     },
     {
         id: 5,
-        name: "Medieval",
+        name: "Cyberpunk",
         description:
-            "Medieval is a medieval-themed strategy game where you build and manage your own kingdom.",
-        creator: "duldul osman",
-        cover: "images/medieval.webp",
-        price: 0,
-        discount: 0,
-        rating: 4.5,
-        releaseDate: "2021-09-15",
+            "Cyberpunk is a futuristic open-world game where you navigate a dystopian city and unimageFolder its secrets.",
+        creator: "Cyborg Games",
+        imageFolder: "cyberpunk",
+        imageCount: 0,
         tags: ["Action", "Adventure", "RPG"],
     },
     {
         id: 6,
-        name: "Soul Hunting",
+        name: "Medieval",
         description:
-            "Soul Hunting is an action RPG where you hunt down powerful creatures to collect their souls and gain new abilities.",
-        creator: "Soul Games",
-        cover: "images/soul-hunting.webp",
-        price: 0,
-        discount: 0,
-        rating: 4.5,
-        releaseDate: "2021-09-15",
+            "Medieval is a medieval-themed strategy game where you build and manage your own kingdom.",
+        creator: "duldul osman",
+        imageFolder: "medieval",
+        imageCount: 0,
         tags: ["Action", "Adventure", "RPG"],
     },
     {
         id: 7,
-        name: "Super Plant",
+        name: "Soul Hunting",
         description:
-            "Super Plant is a platformer game where you control a plant with special abilities to overcome obstacles and defeat enemies.",
-        creator: "Super Games",
-        cover: "images/super-plant.webp",
-        price: 0,
-        discount: 0,
-        rating: 4.5,
-        releaseDate: "2021-09-15",
+            "Soul Hunting is an action RPG where you hunt down powerful creatures to collect their souls and gain new abilities.",
+        creator: "Soul Games",
+        imageFolder: "soul-hunting",
+        imageCount: 0,
         tags: ["Action", "Adventure", "RPG"],
     },
     {
@@ -96,11 +75,8 @@ const games = [
         description:
             "Lost in Space is a sci-fi adventure game where you explore the vastness of space and encounter alien civilizations.",
         creator: "Space Games",
-        cover: "images/lost-in-space.webp",
-        price: 0,
-        discount: 0,
-        rating: 4.5,
-        releaseDate: "2021-09-15",
+        imageFolder: "lost-in-space",
+        imageCount: 0,
         tags: ["Action", "Adventure", "RPG"],
     },
     {
@@ -109,11 +85,8 @@ const games = [
         description:
             "Murderer Chicken is a quirky puzzle game where you control a chicken on a mission to solve mysterious murders.",
         creator: "Chicken Wings",
-        cover: "images/murderer-chicken.webp",
-        price: 0,
-        discount: 0,
-        rating: 4.5,
-        releaseDate: "2020-09-12",
+        imageFolder: "murderer-chicken",
+        imageCount: 0,
         tags: ["Action", "Adventure", "RPG"],
     },
 ];
@@ -122,11 +95,8 @@ export interface Game {
     id: number;
     name: string;
     creator: string;
-    cover: string;
-    price: number;
-    discount: number;
-    rating: number;
-    releaseDate: string;
+    imageFolder: string;
+    imageCount: number;
     tags: string[];
 }
 

@@ -19,6 +19,12 @@ describe("GameToken Module", () => {
         },
     });
 
+    const feeReceiverPrivateKey = PrivateKey.random();
+    const feeReceiver = feeReceiverPrivateKey.toPublicKey();
+
+    const feeReceiver2PrivateKey = PrivateKey.random();
+    const feeReceiver2 = feeReceiver2PrivateKey.toPublicKey();
+
     const publisherPrivateKey = PrivateKey.random();
     const publisher = publisherPrivateKey.toPublicKey();
 
@@ -51,8 +57,143 @@ describe("GameToken Module", () => {
         expect(balance?.toString()).toBe("1000");
     });
 
+    it("should not set feeAmount if not feeReceiver", async () => {
+        appChain.setSigner(feeReceiverPrivateKey);
+        const gameToken = appChain.runtime.resolve("GameToken");
+
+        const tx1 = await appChain.transaction(feeReceiver, () => {
+            gameToken.setFeeAmount(UInt64.from(100));
+        });
+
+        await tx1.sign();
+        await tx1.send();
+
+        const block = await appChain.produceBlock();
+        expect(block?.transactions[0].status.toBoolean()).toBe(false);
+    });
+
+    it("initailize feeReceiver and feeAmount", async () => {
+        appChain.setSigner(feeReceiverPrivateKey);
+        const gameToken = appChain.runtime.resolve("GameToken");
+
+        const tx1 = await appChain.transaction(feeReceiver, () => {
+            gameToken.initFeeReceiver(feeReceiver);
+        });
+
+        await tx1.sign();
+        await tx1.send();
+
+        const block = await appChain.produceBlock();
+
+        const feeReceiverKey = await appChain.query.runtime.GameToken.feeReceiver.get();
+
+        expect(block?.transactions[0].status.toBoolean()).toBe(true);
+        expect(feeReceiverKey?.toString()).toBe(feeReceiver.toString());
+
+        const tx2 = await appChain.transaction(feeReceiver, () => {
+            gameToken.setFeeAmount(UInt64.from(100));
+        });
+
+        await tx2.sign();
+        await tx2.send();
+
+        const block2 = await appChain.produceBlock();
+        const feeAmount = await appChain.query.runtime.GameToken.feeAmount.get();
+
+        expect(block2?.transactions[0].status.toBoolean()).toBe(true);
+        expect(feeAmount?.toString()).toBe("100");
+    });
+
+    it("should not init feeReceiver if already set", async () => {
+        appChain.setSigner(bobPrivateKey);
+        const gameToken = appChain.runtime.resolve("GameToken");
+
+        const tx1 = await appChain.transaction(bob, () => {
+            gameToken.initFeeReceiver(bob);
+        });
+
+        await tx1.sign();
+        await tx1.send();
+
+        const block = await appChain.produceBlock();
+        expect(block?.transactions[0].status.toBoolean()).toBe(false);
+
+        const feeReceiverKey = await appChain.query.runtime.GameToken.feeReceiver.get();
+        expect(feeReceiverKey?.toString()).toBe(feeReceiver.toString());
+    });
+
+    it("feeReceiver should be able to set feeReceiver", async () => {
+        appChain.setSigner(feeReceiverPrivateKey);
+        const gameToken = appChain.runtime.resolve("GameToken");
+
+        const tx1 = await appChain.transaction(feeReceiver, () => {
+            gameToken.setFeeReceiver(feeReceiver2);
+        });
+
+        await tx1.sign();
+        await tx1.send();
+
+        const block = await appChain.produceBlock();
+        const feeReceiverKey = await appChain.query.runtime.GameToken.feeReceiver.get();
+
+        expect(block?.transactions[0].status.toBoolean()).toBe(true);
+        expect(feeReceiverKey?.toString()).toBe(feeReceiver2.toString());
+    });
+
+    it("should not set feeReceiver if not feeReceiver", async () => {
+        appChain.setSigner(feeReceiverPrivateKey);
+        const gameToken = appChain.runtime.resolve("GameToken");
+
+        const tx1 = await appChain.transaction(feeReceiver, () => {
+            gameToken.setFeeReceiver(feeReceiver);
+        });
+
+        await tx1.sign();
+        await tx1.send();
+
+        const block = await appChain.produceBlock();
+        expect(block?.transactions[0].status.toBoolean()).toBe(false);
+
+        const feeReceiverKey = await appChain.query.runtime.GameToken.feeReceiver.get();
+        expect(feeReceiverKey?.toString()).toBe(feeReceiver2.toString());
+    });
+
+    it("should not set feeAmount if not feeReceiver", async () => {
+        appChain.setSigner(feeReceiverPrivateKey);
+        const gameToken = appChain.runtime.resolve("GameToken");
+
+        const tx1 = await appChain.transaction(feeReceiver, () => {
+            gameToken.setFeeAmount(UInt64.from(200));
+        });
+
+        await tx1.sign();
+        await tx1.send();
+
+        const block = await appChain.produceBlock();
+        expect(block?.transactions[0].status.toBoolean()).toBe(false);
+
+        const feeAmount = await appChain.query.runtime.GameToken.feeAmount.get();
+        expect(feeAmount?.toString()).toBe("100");
+    });
+
     it("publiher should create game", async () => {
         appChain.setSigner(publisherPrivateKey);
+
+        const balances = appChain.runtime.resolve("Balances");
+        const tx1 = await appChain.transaction(publisher, () => {
+            balances.addBalance(tokenId, publisher, UInt64.from(100));
+        });
+
+        await tx1.sign();
+        await tx1.send();
+
+        const balanceBlock = await appChain.produceBlock();
+
+        const key = new BalancesKey({ tokenId, address: publisher });
+        const balance = await appChain.query.runtime.Balances.balances.get(key);
+
+        expect(balance?.toString()).toBe("100");
+
         const gameToken = appChain.runtime.resolve("GameToken");
         const createGameTx = await appChain.transaction(publisher, () => {
             gameToken.createNewGame(
@@ -74,6 +215,14 @@ describe("GameToken Module", () => {
             UInt64.from(gameId || 1)
         );
         expect(publisherOfGame?.toString()).toBe(publisher.toString());
+
+        const feeReceiverKey = await appChain.query.runtime.GameToken.feeReceiver.get();
+        expect(feeReceiverKey?.toString()).toBe(feeReceiver2.toString());
+        const feeReceiverBalanceKey = new BalancesKey({ tokenId, address: feeReceiver2 });
+        const feeReceiverBalance =
+            await appChain.query.runtime.Balances.balances.get(feeReceiverBalanceKey);
+
+        expect(feeReceiverBalance?.toString()).toBe("100");
     });
 
     it("should buy game", async () => {

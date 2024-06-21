@@ -17,6 +17,12 @@ export class UserKey extends Struct({
 
 @runtimeModule()
 export class GameToken extends RuntimeModule<{}> {
+    // Fee amount for creating a new game
+    @state() public feeAmount = State.from<UInt64>(UInt64);
+
+    // Receiver of the fee
+    @state() public feeReceiver = State.from<PublicKey>(PublicKey);
+
     // Total number of games
     @state() public totalGameNumber = State.from<UInt64>(UInt64);
 
@@ -43,7 +49,6 @@ export class GameToken extends RuntimeModule<{}> {
     }
 
     /**
-     *
      * @param publisher public key of the publisher
      * @param price price of the game
      * @param discount discount amount for the game
@@ -58,7 +63,25 @@ export class GameToken extends RuntimeModule<{}> {
         timeoutInterval: UInt64,
         number_of_devices_allowed: UInt64
     ): void {
-        // TODO: Add fee for creating a new game
+        const sender = this.transaction.sender.value;
+        const feeReceiver = this.feeReceiver.get().value;
+        const tokenId = TokenId.from(0);
+
+        assert(
+            this.balances
+                .getBalance(tokenId, sender)
+                .greaterThanOrEqual(this.feeAmount.get().value),
+            "Insufficient balance"
+        );
+
+        this.balances.transfer(
+            tokenId,
+            sender,
+            feeReceiver,
+            Balance.from(this.feeAmount.get().value)
+        );
+
+        assert(price.value.greaterThanOrEqual(0), "Price should be greater than or equal to 0");
         assert(
             price.value.greaterThanOrEqual(discount.value),
             "Discount should be less than or equal to the game price"
@@ -66,6 +89,10 @@ export class GameToken extends RuntimeModule<{}> {
         assert(
             timeoutInterval.value.greaterThanOrEqual(120),
             "Timeout interval should be greater than or equal to 120 minutes"
+        );
+        assert(
+            number_of_devices_allowed.value.greaterThanOrEqual(1),
+            "Number of devices allowed should be greater than or equal to 1"
         );
         assert(
             number_of_devices_allowed.value.lessThanOrEqual(4),
@@ -92,8 +119,8 @@ export class GameToken extends RuntimeModule<{}> {
             "Game does not exist"
         );
 
-        const gamePrice = this.gamePrice.get(UInt64.from(gameId)).orElse(UInt64.from(10));
-        const discount = this.discount.get(UInt64.from(gameId)).orElse(UInt64.from(5));
+        const gamePrice = this.gamePrice.get(UInt64.from(gameId)).orElse(UInt64.from(0));
+        const discount = this.discount.get(UInt64.from(gameId)).orElse(UInt64.from(0));
         const total = UInt64.from(gamePrice.value).sub(UInt64.from(discount.value));
         const sender = this.transaction.sender.value;
         const tokenId = TokenId.from(0);
@@ -159,8 +186,39 @@ export class GameToken extends RuntimeModule<{}> {
     }
 
     /**
+     * First time initialization of the fee receiver
+     * @param receiver public key of the receiver
+     */
+    @runtimeMethod()
+    public initFeeReceiver(receiver: PublicKey): void {
+        assert(this.feeReceiver.get().isSome.not(), "Fee receiver already set");
+        this.feeReceiver.set(receiver);
+    }
+
+    @runtimeMethod()
+    public setFeeReceiver(receiver: PublicKey): void {
+        assert(
+            this.transaction.sender.value.equals(this.feeReceiver.get().value),
+            "Only the feeReceiver can call this method"
+        );
+        this.feeReceiver.set(receiver);
+    }
+
+    /**
+     * Set the fee amount for creating a new game.
+     * @param amount Fee amount for creating a new game in nanoMina.
+     */
+    @runtimeMethod()
+    public setFeeAmount(amount: UInt64): void {
+        assert(
+            this.transaction.sender.value.equals(this.feeReceiver.get().value),
+            "Only the feeReceiver can call this method"
+        );
+        this.feeAmount.set(UInt64.from(amount));
+    }
+
+    /**
      * Set the price of the game.
-     * Only the publisher can call this method.
      * @param price Price of the game in nanoMina.
      */
     @runtimeMethod()
@@ -171,7 +229,6 @@ export class GameToken extends RuntimeModule<{}> {
 
     /**
      * Set the discount amount for the game.
-     * Only the publisher can call this method.
      * @param discount Discount amount for the game in nanoMina.
      */
     @runtimeMethod()
@@ -186,7 +243,6 @@ export class GameToken extends RuntimeModule<{}> {
 
     /**
      * Set the timeout interval for the proof to be valid.
-     * Only the publisher can call this method.
      * @param interval Timeout interval for the proof to be valid.
      */
     @runtimeMethod()
@@ -197,7 +253,6 @@ export class GameToken extends RuntimeModule<{}> {
 
     /**
      * Set the number of devices allowed for the game.
-     * Only the publisher can call this method.
      * @param number Number of devices allowed for the game.
      */
     @runtimeMethod()

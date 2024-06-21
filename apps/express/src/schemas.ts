@@ -11,6 +11,7 @@ const gameSchema = new mongoose.Schema(
         imageFolder: String,
         imageCount: Number,
         tags: [String],
+        downloadable: Boolean,
     },
     { versionKey: false }
 );

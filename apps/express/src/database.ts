@@ -8,6 +8,7 @@ const games = [
         imageFolder: "diamond",
         imageCount: 3,
         tags: ["Action", "Adventure", "Survival"],
+        downloadable: true,
     },
     {
         id: 2,
@@ -18,6 +19,7 @@ const games = [
         imageFolder: "kindasus",
         imageCount: 3,
         tags: ["Simulation", "Puzzle"],
+        downloadable: true,
     },
     {
         id: 3,
@@ -28,6 +30,7 @@ const games = [
         imageFolder: "barbarian",
         imageCount: 0,
         tags: ["Action", "Adventure", "RPG"],
+        downloadable: false,
     },
     {
         id: 4,
@@ -38,6 +41,7 @@ const games = [
         imageFolder: "car-race",
         imageCount: 0,
         tags: ["Racing", "Sports"],
+        downloadable: false,
     },
     {
         id: 5,
@@ -48,6 +52,7 @@ const games = [
         imageFolder: "cyberpunk",
         imageCount: 0,
         tags: ["Action", "Adventure", "RPG"],
+        downloadable: false,
     },
     {
         id: 6,
@@ -58,6 +63,7 @@ const games = [
         imageFolder: "medieval",
         imageCount: 0,
         tags: ["Action", "Adventure", "RPG"],
+        downloadable: false,
     },
     {
         id: 7,
@@ -68,6 +74,7 @@ const games = [
         imageFolder: "soul-hunting",
         imageCount: 0,
         tags: ["Action", "Adventure", "RPG"],
+        downloadable: false,
     },
     {
         id: 8,
@@ -78,6 +85,7 @@ const games = [
         imageFolder: "lost-in-space",
         imageCount: 0,
         tags: ["Action", "Adventure", "RPG"],
+        downloadable: false,
     },
     {
         id: 9,
@@ -88,6 +96,7 @@ const games = [
         imageFolder: "murderer-chicken",
         imageCount: 0,
         tags: ["Action", "Adventure", "RPG"],
+        downloadable: false,
     },
 ];
 
@@ -99,6 +108,7 @@ export interface Game {
     imageFolder: string;
     imageCount: number;
     tags: string[];
+    downloadable: boolean;
 }
 
 class Database {

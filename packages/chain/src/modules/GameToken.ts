@@ -186,8 +186,27 @@ export class GameToken extends RuntimeModule<{}> {
     }
 
     /**
-     * Set the fee receiver.
-     * @param receiver Public key of the receiver.
+     * First time initialization of the fee receiver
+     * @param receiver public key of the receiver
+     */
+    @runtimeMethod()
+    public initFeeReceiver(receiver: PublicKey): void {
+        assert(this.feeReceiver.get().isSome.not(), "Fee receiver already set");
+        this.feeReceiver.set(receiver);
+    }
+
+    @runtimeMethod()
+    public setFeeReceiver(receiver: PublicKey): void {
+        assert(
+            this.transaction.sender.value.equals(this.feeReceiver.get().value),
+            "Only the feeReceiver can call this method"
+        );
+        this.feeReceiver.set(receiver);
+    }
+
+    /**
+     * Set the fee amount for creating a new game.
+     * @param amount Fee amount for creating a new game in nanoMina.
      */
     @runtimeMethod()
     public setFeeAmount(amount: UInt64): void {
